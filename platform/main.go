@@ -8,39 +8,41 @@ mail: ashraf_minhaj@yahoo.com
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"strings"
-
-	"github.com/joho/godotenv"
 )
 
 func docString() {
+	fmt.Println("Hello, Platform user!")
+	fmt.Println("If you face any difficulty feel free to reach out to the platform team")
 	fmt.Println("Usage: platform start ticket EPD-123")
 }
 
 func main() {
 	isWrongCommand := false
-	godotenv.Load()
+	URL, TOKEN := loadConfig()
+	// godotenv.Load()
 
-	// load env
-	URL := os.Getenv("YOUTRACK_URL")
-	TOKEN := os.Getenv("YOUTRACK_TOKEN")
+	// // load env
+	// URL := os.Getenv("YOUTRACK_URL")
+	// TOKEN := os.Getenv("YOUTRACK_TOKEN")
 
-	fmt.Println(URL)
-	fmt.Println(TOKEN)
-
-	fmt.Println("Hello, Platform user!")
-	fmt.Println("If you face any difficulty feel free to reach out to the platform team")
+	// fmt.Println(URL)
+	// fmt.Println(TOKEN)
 
 	arguments := os.Args
-	fmt.Println(arguments)
+	// fmt.Println(arguments)
 
 	// check number of arguments
 	if len(arguments) < 4 {
+		if len(arguments) == 2 && arguments[1] == "configure" {
+			configure()
+		}
 		isWrongCommand = true
 	} else if arguments[2] == "ticket" {
 		ticket := os.Args[3]
@@ -61,6 +63,74 @@ func main() {
 		docString()
 		return
 	}
+}
+
+func configure() {
+	homeDir, err := os.UserHomeDir()
+
+	configDir := homeDir + "/.platform"
+
+	err = os.MkdirAll(homeDir+"/.platform", 0755)
+	if err != nil {
+		fmt.Println("Could not create .platform directory:", err)
+		return
+	}
+
+	reader := bufio.NewReader(os.Stdin)
+
+	fmt.Print("YouTrack URL: ")
+	URL, _ := reader.ReadString('\n')
+
+	fmt.Print("YouTrack Token: ")
+	TOKEN, _ := reader.ReadString('\n')
+
+	URL = strings.TrimSpace(URL)
+	TOKEN = strings.TrimSpace(TOKEN)
+
+	// fmt.Print(URL, TOKEN)
+
+	config := map[string]string{
+		"YOUTRACK_URL":   URL,
+		"YOUTRACK_TOKEN": TOKEN,
+	}
+
+	data, err := json.MarshalIndent(config, "", "  ")
+	if err != nil {
+		fmt.Println("Could not create config:", err)
+		return
+	}
+
+	configFile := configDir + "/config.json"
+
+	err = os.WriteFile(configFile, data, 0600)
+	if err != nil {
+		fmt.Println("Could not save config:", err)
+		return
+	}
+
+	fmt.Println("Configuration saved.")
+}
+
+func loadConfig() (string, string) {
+	homeDir, _ := os.UserHomeDir()
+
+	configFile := homeDir + "/.platform/config.json"
+
+	data, err := os.ReadFile(configFile)
+	if err != nil {
+		fmt.Println("Could not read config:", err)
+		return "", ""
+	}
+
+	var config map[string]string
+
+	err = json.Unmarshal(data, &config)
+	if err != nil {
+		fmt.Println("Could not read config:", err)
+		return "", ""
+	}
+
+	return config["YOUTRACK_URL"], config["YOUTRACK_TOKEN"]
 }
 
 func isValidTicket(ticket string) bool {

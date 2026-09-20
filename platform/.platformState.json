@@ -1,5 +1,0 @@
-{
-  "ticketDescription": "**Description:** \n\nThe DevTest deployment script needs to be updated to dynamically fetch the latest Strapi file from S3 based on the id8 version defined in the `.env` file, instead of using a hardcoded version.\n\n**Scope:**\n\n* Update the DevTest deployment script to read the id8 version from `.env`\n* Fetch the corresponding Strapi file from S3 based on that version\n\n**Acceptance Criteria:**\n\n1. Deployment script reads id8 version from `.env`\n2. Correct Strapi file is fetched from S3 based on the version\n3. Deployment completes successfully with the fetched Strapi file",
-  "ticketID": "EPD-300",
-  "ticketSummary": "Fetch Latest Strapi File from S3 Based on id8 Version in DevTest Deployment Script"
-}
