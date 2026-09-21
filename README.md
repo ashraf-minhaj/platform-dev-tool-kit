@@ -27,7 +27,7 @@ chmod +x install.sh;
 ./install.sh
 ```
 
-# for windows uses
+### for windows users -
 - generate binary
 ```bash
 GOOS=windows GOARCH=amd64 go build -o platform.exe
@@ -36,12 +36,52 @@ GOOS=windows GOARCH=amd64 go build -o platform.exe
 - move to this directory `C:\Users\<username>\bin\`
 
 # Features
-0. Configure - `platform configure` 
-    - asks for API token and ticket platform url and configurs the binary to use that late. like aws configure works.
-1. Create branch as per ticket convention - `platform start ticket EP-135`
-    1.1. fetch youtrack ticket id, description 
-        1.2. create state file in the repo 
-            1.3. auto ignore the state file in the repo
 
+### 0. Configuration
 
-> ashraf-minhaj was here
+**`platform configure`**
+
+* Configure YouTrack URL
+* Configure API token
+* Store configuration globally for future commands
+* Works similar to `aws configure`
+
+### 1. Ticket-Based Development
+
+**`platform start ticket EP-135`**
+
+#### 1.1 Fetch Ticket
+
+* Fetch ticket details from YouTrack
+* Retrieve ticket ID, summary, and description
+
+#### 1.2 Project State
+
+* Create `.platformState.json` in the repository
+* Store the current ticket information
+* Automatically add `.platformState.json` to `.gitignore`
+* Create `.gitignore` if it does not exist
+
+#### 1.3 Create Feature Branch
+
+* Generate a branch name from the ticket ID and title
+* Create and checkout the feature branch
+
+Example for ticket: EPD-300: Implement New Authentication System
+
+Command - `platform start ticket EPD-300`, and a new branch named 
+```text
+→ feature/EPD-300-implement-new-authentication-system
+```
+
+is created.
+
+> More to come. This is under development. Feel free to contribute. How do you do it? If you are a DevOps you should already know it. 
+
+---
+
+<div align="center">
+
+[ashraf-minhaj](https://www.linkedin.com/in/ashraf-minhaj) was here
+
+</div>
