@@ -1,5 +1,13 @@
 # platform-dev-tool-kit
-a cli tool for developers 
+a cli tool for developers prepared by platform engineer.
+> Jump into the world where you can help the dev team without being a gate keeper in the process.
+
+# Get started
+
+### Linux/Mac users -
+```bash
+chmod +x install.sh; ./install.sh
+```
 
 # Features
 0. Configure - `platform configure` 

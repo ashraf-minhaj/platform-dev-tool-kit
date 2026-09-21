@@ -24,6 +24,7 @@ func docString() {
 }
 
 func main() {
+	version := "0.1.0"
 	isWrongCommand := false
 	URL, TOKEN := loadConfig()
 	// godotenv.Load()
@@ -40,8 +41,15 @@ func main() {
 
 	// check number of arguments
 	if len(arguments) < 4 {
-		if len(arguments) == 2 && arguments[1] == "configure" {
-			configure()
+		if len(arguments) == 2 {
+			if arguments[1] == "configure" {
+				configure()
+			}
+
+			if os.Args[1] == "version" {
+				fmt.Println(version)
+				return
+			}
 		}
 		isWrongCommand = true
 	} else if arguments[2] == "ticket" {
