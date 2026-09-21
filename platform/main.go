@@ -19,6 +19,7 @@ import (
 )
 
 var version string = "0.1.0"
+var debug bool = true
 
 func main() {
 	isWrongCommand := true
@@ -66,18 +67,28 @@ func main() {
 						fmt.Println("This command must be run inside a Git repository.")
 					}
 
-					_, err := getCurrentBranch()
+					// ignore the state file
+					err := updateGitignore()
+					if err != nil {
+						fmt.Println("Could not update .gitignore:", err)
+						return
+					}
+
+					_, err = getCurrentBranch()
 					if err != nil {
 						fmt.Println("Could not get current Git branch:", err)
 					}
 
 					branchName := createBranchName(ticket, ticketSummary)
-					// fmt.Printf("Branch: %s for ticket %s", branchName, ticket)
-					err = createBranch(branchName)
-					if err != nil {
-						fmt.Println("Could not create branch:", err)
+					fmt.Print(branchName)
+
+					if !debug {
+						err = createBranch(branchName)
+						if err != nil {
+							fmt.Println("Could not create branch:", err)
+						}
+						fmt.Println("Created Branch:", branchName, "for ticket:", ticket)
 					}
-					fmt.Println("Created Branch:", branchName, "for ticket:", ticket)
 					return
 				}
 			}
@@ -252,6 +263,31 @@ func isGitRepo() bool {
 	}
 
 	return true
+}
+
+func updateGitignore() error {
+	file := ".gitignore"
+
+	data, err := os.ReadFile(file)
+
+	if os.IsNotExist(err) {
+		data = []byte("")
+	} else if err != nil {
+		return err
+	}
+
+	content := string(data)
+
+	if !strings.Contains(content, ".platformState.json") {
+		content += "\n.platformState.json\n"
+
+		err = os.WriteFile(file, []byte(content), 0644)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func getCurrentBranch() (string, error) {
