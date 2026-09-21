@@ -14,18 +14,14 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"os/exec"
 	"strings"
 )
 
-func docString() {
-	fmt.Println("Hello, Platform user!")
-	fmt.Println("If you face any difficulty feel free to reach out to the platform team")
-	fmt.Println("Usage: platform start ticket EPD-123")
-}
+var version string = "0.1.0"
 
 func main() {
-	version := "0.1.0"
-	isWrongCommand := false
+	isWrongCommand := true
 	URL, TOKEN := loadConfig()
 	// godotenv.Load()
 
@@ -44,33 +40,60 @@ func main() {
 		if len(arguments) == 2 {
 			if arguments[1] == "configure" {
 				configure()
+				return
 			}
-
 			if os.Args[1] == "version" {
 				fmt.Println(version)
 				return
 			}
 		}
-		isWrongCommand = true
-	} else if arguments[2] == "ticket" {
-		ticket := os.Args[3]
-		if isValidTicket(ticket) {
-			fmt.Println(ticket)
+	} else if len(arguments) == 4 {
+		if arguments[1] == "start" {
+			if arguments[2] == "ticket" {
+				ticket := os.Args[3]
+				if isValidTicket(ticket) {
+					fmt.Println(ticket)
 
-			// get ticket data
-			getTicket(URL, TOKEN, ticket)
-		} else {
-			isWrongCommand = true
+					// get ticket data
+					_, ticketSummary, ticketDescription := getTicket(URL, TOKEN, ticket)
+					fmt.Println("#--------------------#")
+					fmt.Println("ID:", ticket)
+					fmt.Println("Title:", ticketSummary)
+					fmt.Println("Description:", ticketDescription)
+
+					// check if current directory is a git repo
+					if !isGitRepo() {
+						fmt.Println("This command must be run inside a Git repository.")
+					}
+
+					_, err := getCurrentBranch()
+					if err != nil {
+						fmt.Println("Could not get current Git branch:", err)
+					}
+
+					branchName := createBranchName(ticket, ticketSummary)
+					// fmt.Printf("Branch: %s for ticket %s", branchName, ticket)
+					err = createBranch(branchName)
+					if err != nil {
+						fmt.Println("Could not create branch:", err)
+					}
+					fmt.Println("Created Branch:", branchName, "for ticket:", ticket)
+					return
+				}
+			}
 		}
-	} else {
-		isWrongCommand = true
 	}
-
 	// fmt.Println(isWrongCommand)
 	if isWrongCommand {
 		docString()
 		return
 	}
+}
+
+func docString() {
+	fmt.Println("Hello, Platform user!")
+	fmt.Println("If you face any difficulty feel free to reach out to the platform team")
+	fmt.Println("Usage: platform start ticket EPD-123")
 }
 
 func configure() {
@@ -157,7 +180,7 @@ func isValidTicket(ticket string) bool {
 	return false
 }
 
-func getTicket(baseURL string, token string, ticketID string) {
+func getTicket(baseURL string, token string, ticketID string) (err error, ticketSummary string, ticketDescription string) {
 	fmt.Println("URL:", baseURL)
 	fmt.Println("Ticket:", ticketID)
 
@@ -166,7 +189,7 @@ func getTicket(baseURL string, token string, ticketID string) {
 	body, status, err := get(url, token)
 	if err != nil {
 		fmt.Println("Error:", err)
-		return
+		return err, "", ""
 	}
 
 	fmt.Println("Status:", status)
@@ -179,18 +202,20 @@ func getTicket(baseURL string, token string, ticketID string) {
 	err = json.Unmarshal(body, &data)
 	if err != nil {
 		fmt.Println("Could not read ticket:", err)
-		return
+		return err, "", ""
 	}
 
-	ticketSummary := data["summary"].(string)
-	ticketDescription := data["description"].(string)
+	ticketSummary = data["summary"].(string)
+	ticketDescription = data["description"].(string)
 
-	fmt.Println("ID:", ticketID)
-	fmt.Println("Title:", ticketSummary)
-	fmt.Println("Description:", ticketDescription)
+	// fmt.Println("ID:", ticketID)
+	// fmt.Println("Title:", ticketSummary)
+	// fmt.Println("Description:", ticketDescription)
 
 	// fmt.Println(reflect.TypeOf(ticketSummary))
 	updateState(ticketID, ticketSummary, ticketDescription)
+
+	return nil, ticketSummary, ticketDescription
 }
 
 func updateState(ticketID string, ticketSummary string, ticketDescription string) {
@@ -216,6 +241,52 @@ func updateState(ticketID string, ticketSummary string, ticketDescription string
 	}
 
 	fmt.Println("State updated.")
+}
+
+func isGitRepo() bool {
+	cmd := exec.Command("git", "rev-parse", "--is-inside-work-tree")
+
+	err := cmd.Run()
+	if err != nil {
+		return false
+	}
+
+	return true
+}
+
+func getCurrentBranch() (string, error) {
+	cmd := exec.Command("git", "branch", "--show-current")
+
+	output, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+
+	return strings.TrimSpace(string(output)), nil
+}
+
+func createBranchName(ticketID string, ticketSummary string) string {
+	// creates branch name with 4 words after ticket id
+	words := strings.Fields(ticketSummary)
+
+	if len(words) > 4 {
+		words = words[:4]
+	}
+
+	summary := strings.ToLower(strings.Join(words, "-"))
+
+	return "feature/" + ticketID + "-" + summary
+}
+
+func createBranch(branchName string) error {
+	cmd := exec.Command("git", "checkout", "-b", branchName)
+
+	err := cmd.Run()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func get(url string, token string) ([]byte, int, error) {
